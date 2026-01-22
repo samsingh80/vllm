@@ -1,16 +1,78 @@
 apiVersion: ai.sap.com/v1alpha1
 kind: ServingTemplate
 metadata:
-  name: vllm
+  name: deepseek-r1-vllm
   annotations:
-    scenarios.ai.sap.com/description: "Run a vllm server on SAP AI Core"
-    scenarios.ai.sap.com/name: "vllm"
-    executables.ai.sap.com/description: "ollama service"
-    executables.ai.sap.com/name: "vllm"
+    scenarios.ai.sap.com/description: "Run DeepSeek-R1 reasoning model on SAP AI Core with vLLM"
+    scenarios.ai.sap.com/name: "deepseek-r1-vllm"
+    executables.ai.sap.com/description: "Deploy DeepSeek-R1 (671B or distilled models) with vLLM inference server"
+    executables.ai.sap.com/name: "deepseek-r1-vllm"
   labels:
-    scenarios.ai.sap.com/id: "vllm"
-    ai.sap.com/version: "0.0.1"
+    scenarios.ai.sap.com/id: "deepseek-r1-vllm"
+    ai.sap.com/version: "1.0.0"
 spec:
+  inputs:
+    parameters:
+      - name: modelName
+        default: "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B"
+        type: string
+        description: "DeepSeek-R1 model variants: deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B, deepseek-ai/DeepSeek-R1-Distill-Qwen-7B, deepseek-ai/DeepSeek-R1-Distill-Qwen-14B, deepseek-ai/DeepSeek-R1-Distill-Qwen-32B, deepseek-ai/DeepSeek-R1-Distill-Llama-8B, deepseek-ai/DeepSeek-R1-Distill-Llama-70B, deepseek-ai/DeepSeek-R1 (671B full model)"
+      
+      - name: dataType
+        default: "auto"
+        type: string
+        description: "Data type for model weights. Use 'auto' for automatic selection, 'bfloat16' for BF16, 'float16' for FP16. DeepSeek-R1 supports native FP8 quantization."
+      
+      - name: gpuMemoryUtilization
+        default: "0.90"
+        type: string
+        description: "GPU memory utilization (0.8-0.95 recommended). Higher values allow larger batch sizes but may cause OOM."
+      
+      - name: maxModelLen
+        default: "32768"
+        type: string
+        description: "Maximum context length. DeepSeek-R1 supports up to 128K tokens but requires significant memory."
+      
+      - name: maxNumBatchedTokens
+        default: "32768"
+        type: string
+        description: "Maximum batched tokens per iteration. Should match or be less than maxModelLen."
+      
+      - name: maxNumSeqs
+        default: "256"
+        type: string
+        description: "Maximum sequences per iteration. Lower for reasoning tasks, higher for throughput."
+      
+      - name: tensorParallelSize
+        default: "1"
+        type: string
+        description: "Number of GPUs for tensor parallelism. Use 4-8 for large models. Must match GPU count in resource plan."
+      
+      - name: enableExpertParallel
+        default: "true"
+        type: string
+        description: "Enable expert parallelism for MoE architecture (DeepSeek-R1 uses MoE). Set to 'true' for better performance."
+      
+      - name: trustRemoteCode
+        default: "true"
+        type: string
+        description: "Required for DeepSeek-R1. Must be 'true' to load custom model code."
+      
+      - name: enablePrefixCaching
+        default: "true"
+        type: string
+        description: "Enable prefix caching for repeated prompts. Disable for benchmarking."
+      
+      - name: quantization
+        default: "None"
+        type: string
+        description: "Quantization method: 'None', 'awq', 'gptq', 'fp8'. DeepSeek-R1 supports native FP8."
+      
+      - name: resourcePlan
+        type: string
+        default: "train.l"
+        description: "Resource Plan. Use train.l (4 GPUs) or train.xl (8 GPUs) for full DeepSeek-R1. Use infer.l for distilled models."
+
   template:
     apiVersion: "serving.kserve.io/v1beta1"
     metadata:
@@ -19,7 +81,7 @@ spec:
         autoscaling.knative.dev/target: 1
         autoscaling.knative.dev/targetBurstCapacity: 0
       labels: |
-        ai.sap.com/resourcePlan: infer.l
+        ai.sap.com/resourcePlan: "{{inputs.parameters.resourcePlan}}"
     spec: |
       predictor:
         imagePullSecrets:
@@ -30,5 +92,33 @@ spec:
         - name: kserve-container
           image: docker.io/jeyasinghsamuelponnusamydur043/vllm:ai-core-vllm
           ports:
-            - containerPort: 8080
+            - containerPort: 8000
               protocol: TCP
+          command: ["/bin/sh", "-c"]
+          args:
+            - >
+              set -e && echo "-------------Starting DeepSeek-R1 with vLLM OpenAI API Server--------------" 
+              && python3 -m vllm.entrypoints.openai.api_server 
+              --model {{inputs.parameters.modelName}}
+              --dtype {{inputs.parameters.dataType}}
+              --gpu-memory-utilization {{inputs.parameters.gpuMemoryUtilization}}
+              --max-model-len {{inputs.parameters.maxModelLen}}
+              --max-num-batched-tokens {{inputs.parameters.maxNumBatchedTokens}}
+              --max-num-seqs {{inputs.parameters.maxNumSeqs}}
+              --tensor-parallel-size {{inputs.parameters.tensorParallelSize}}
+              {{#if (eq inputs.parameters.enableExpertParallel "true")}}--enable-expert-parallel{{/if}}
+              --trust-remote-code
+              {{#if (eq inputs.parameters.enablePrefixCaching "false")}}--no-enable-prefix-caching{{/if}}
+              {{#if (ne inputs.parameters.quantization "None")}}--quantization {{inputs.parameters.quantization}}{{/if}}
+              --host 0.0.0.0
+              --port 8000
+          env:
+            - name: MODEL
+              value: "{{inputs.parameters.modelName}}"
+            - name: VLLM_USE_V1
+              value: "1"
+            - name: HF_HOME
+              value: "/tmp/huggingface"
+          resources:
+            limits:
+              nvidia.com/gpu: "{{inputs.parameters.tensorParallelSize}}"
