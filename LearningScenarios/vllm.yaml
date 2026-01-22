@@ -14,7 +14,7 @@ spec:
   inputs:
     parameters:
       - name: modelName
-        default: "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B"
+        default: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
         type: string
         description: "DeepSeek-R1 model variant"
       
