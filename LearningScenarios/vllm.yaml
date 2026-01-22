@@ -5,7 +5,7 @@ metadata:
   annotations:
     scenarios.ai.sap.com/description: "Run DeepSeek-R1 reasoning model on SAP AI Core with vLLM"
     scenarios.ai.sap.com/name: "deepseek-r1-vllm"
-    executables.ai.sap.com/description: "Deploy DeepSeek-R1 (671B or distilled models) with vLLM inference server"
+    executables.ai.sap.com/description: "Deploy DeepSeek-R1 with vLLM inference server"
     executables.ai.sap.com/name: "deepseek-r1-vllm"
   labels:
     scenarios.ai.sap.com/id: "deepseek-r1-vllm"
@@ -21,47 +21,37 @@ spec:
       - name: dataType
         default: "auto"
         type: string
-        description: "Data type for model weights (auto, bfloat16, float16)"
+        description: "Data type for model weights"
       
       - name: gpuMemoryUtilization
         default: "0.90"
         type: string
-        description: "GPU memory utilization (0.8-0.95 recommended)"
+        description: "GPU memory utilization"
       
       - name: maxModelLen
         default: "32768"
         type: string
-        description: "Maximum context length (32K default, supports up to 128K)"
+        description: "Maximum context length"
       
       - name: maxNumBatchedTokens
         default: "32768"
         type: string
-        description: "Maximum batched tokens per iteration"
+        description: "Maximum batched tokens"
       
       - name: maxNumSeqs
         default: "256"
         type: string
-        description: "Maximum sequences per iteration"
+        description: "Maximum sequences"
       
       - name: tensorParallelSize
         default: "1"
         type: string
-        description: "Number of GPUs for tensor parallelism"
-      
-      - name: quantization
-        default: "None"
-        type: string
-        description: "Quantization method: None, awq, gptq, fp8"
-      
-      - name: additionalArgs
-        default: "--enable-expert-parallel --trust-remote-code"
-        type: string
-        description: "Additional vLLM arguments. Default enables expert parallelism and trust remote code"
+        description: "Number of GPUs"
       
       - name: resourcePlan
         type: string
         default: "train.l"
-        description: "Resource Plan: infer.l (1 GPU), train.l (4 GPUs), train.xl (8 GPUs)"
+        description: "Resource Plan"
 
   template:
     apiVersion: "serving.kserve.io/v1beta1"
@@ -71,7 +61,7 @@ spec:
         autoscaling.knative.dev/target: 1
         autoscaling.knative.dev/targetBurstCapacity: 0
       labels: |
-        ai.sap.com/resourcePlan: "{{inputs.parameters.resourcePlan}}"
+        ai.sap.com/resourcePlan: "infer.l"
     spec: |
       predictor:
         imagePullSecrets:
@@ -87,25 +77,6 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - >
-              set -e && echo "-------------Starting DeepSeek-R1 with vLLM OpenAI API Server--------------" 
+              set -e && echo "Starting DeepSeek-R1 with vLLM" 
               && python3 -m vllm.entrypoints.openai.api_server 
               --model {{inputs.parameters.modelName}}
-              --dtype {{inputs.parameters.dataType}}
-              --gpu-memory-utilization {{inputs.parameters.gpuMemoryUtilization}}
-              --max-model-len {{inputs.parameters.maxModelLen}}
-              --max-num-batched-tokens {{inputs.parameters.maxNumBatchedTokens}}
-              --max-num-seqs {{inputs.parameters.maxNumSeqs}}
-              --tensor-parallel-size {{inputs.parameters.tensorParallelSize}}
-              --host 0.0.0.0
-              --port 8000
-              {{inputs.parameters.additionalArgs}}
-          env:
-            - name: MODEL
-              value: "{{inputs.parameters.modelName}}"
-            - name: VLLM_USE_V1
-              value: "1"
-            - name: HF_HOME
-              value: "/tmp/huggingface"
-          resources:
-            limits:
-              nvidia.com/gpu: {{inputs.parameters.tensorParallelSize}}
