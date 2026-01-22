@@ -93,6 +93,6 @@ spec:
             - name: MODEL
               value: "{{inputs.parameters.modelName}}"
             - name: VLLM_ATTENTION_BACKEND
-              value: "XFORMERS"
+              value: "TORCH_SDPA"
             - name: HF_HOME
               value: "/tmp/huggingface"
