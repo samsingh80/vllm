@@ -50,7 +50,7 @@ spec:
       
       - name: resourcePlan
         type: string
-        default: "train.l"
+        default: "infer.l"
         description: "Resource Plan"
 
   template:
@@ -76,7 +76,24 @@ spec:
               protocol: TCP
           command: ["/bin/sh", "-c"]
           args:
+          args:
             - >
-              set -e && echo "Starting DeepSeek-R1 with vLLM" 
+              set -e && echo "Starting DeepSeek-R1 14B on infer.l" 
               && python3 -m vllm.entrypoints.openai.api_server 
               --model {{inputs.parameters.modelName}}
+              --dtype {{inputs.parameters.dataType}}
+              --gpu-memory-utilization {{inputs.parameters.gpuMemoryUtilization}}
+              --max-model-len {{inputs.parameters.maxModelLen}}
+              --max-num-batched-tokens {{inputs.parameters.maxNumBatchedTokens}}
+              --max-num-seqs {{inputs.parameters.maxNumSeqs}}
+              --tensor-parallel-size {{inputs.parameters.tensorParallelSize}}
+              --trust-remote-code
+              --host 0.0.0.0
+              --port 8000
+          env:
+            - name: MODEL
+              value: "{{inputs.parameters.modelName}}"
+            - name: VLLM_ATTENTION_BACKEND
+              value: "XFORMERS"
+            - name: HF_HOME
+              value: "/tmp/huggingface"
