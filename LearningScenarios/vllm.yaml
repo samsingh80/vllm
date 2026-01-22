@@ -76,7 +76,6 @@ spec:
               protocol: TCP
           command: ["/bin/sh", "-c"]
           args:
-          args:
             - >
               set -e && echo "Starting DeepSeek-R1 14B on infer.l" 
               && python3 -m vllm.entrypoints.openai.api_server 
