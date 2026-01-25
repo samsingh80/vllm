@@ -2,20 +2,20 @@
 apiVersion: ai.sap.com/v1alpha1
 kind: ServingTemplate
 metadata:
-  name: vllm-deepseek
+  name: vllm-deepseek-14b
   annotations:
     scenarios.ai.sap.com/description: "Run a vLLM server to consume deepseek model on SAP AI Core"
-    scenarios.ai.sap.com/name: "vllm-deepseek"
+    scenarios.ai.sap.com/name: "vllm-deepseek-14b"
     executables.ai.sap.com/description: "Run a vLLM server to consume deepseek model on SAP AI Core"
-    executables.ai.sap.com/name: "vllm-deepseek"
+    executables.ai.sap.com/name: "vllm-deepseek-14b"
   labels:
-    scenarios.ai.sap.com/id: "vllm-deepseek"
+    scenarios.ai.sap.com/id: "vllm-deepseek-14b"
     ai.sap.com/version: "0.0.1"
 spec:
   inputs:
     parameters:
       - name: modelName # placeholder name
-        default: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B" 
+        default: "deepseek-ai/DeepSeek-R1-Distill-Qwen-14b" 
         type: string # required for every parameters
         description: "--model: Name or path of the huggingface model to use. https://docs.vllm.ai/en/latest/models/supported_models.html/ for supported models. The same model name is used with SAP Generative AI Hub SDK"
       - name: dataType # Data Type
@@ -31,7 +31,7 @@ spec:
         type: string # required for every parameters
         description: "--max-model-len: Model context length. https://docs.vllm.ai/en/latest/models/engine_args.html"
       - name: maxNumBatchedTokens # placeholder name
-        default: "2048" 
+        default: "30720" 
         type: string # required for every parameters
         description: "--max-num-batched-tokens: Maximum number of batched tokens per iteration. https://docs.vllm.ai/en/latest/models/engine_args.html"
       - name: maxNumSeqs # placeholder name
