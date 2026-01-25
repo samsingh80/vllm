@@ -15,7 +15,7 @@ spec:
   inputs:
     parameters:
       - name: modelName # placeholder name
-        default: "TheBloke/Mistral-7B-Instruct-v0.2-AWQ" 
+        default: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B" 
         type: string # required for every parameters
         description: "--model: Name or path of the huggingface model to use. https://docs.vllm.ai/en/latest/models/supported_models.html/ for supported models. The same model name is used with SAP Generative AI Hub SDK"
       - name: dataType # Data Type
