@@ -2,14 +2,14 @@
 apiVersion: ai.sap.com/v1alpha1
 kind: ServingTemplate
 metadata:
-  name: vllm
+  name: vllm-deepseek
   annotations:
-    scenarios.ai.sap.com/description: "Run a vLLM server on SAP AI Core"
-    scenarios.ai.sap.com/name: "vllm"
-    executables.ai.sap.com/description: "Run a LocalAI server on SAP AI Core"
-    executables.ai.sap.com/name: "vllm"
+    scenarios.ai.sap.com/description: "Run a vLLM server to consume deepseek model on SAP AI Core"
+    scenarios.ai.sap.com/name: "vllm-deepseek"
+    executables.ai.sap.com/description: "Run a vLLM server to consume deepseek model on SAP AI Core"
+    executables.ai.sap.com/name: "vllm-deepseek"
   labels:
-    scenarios.ai.sap.com/id: "vllm"
+    scenarios.ai.sap.com/id: "vllm-deepseek"
     ai.sap.com/version: "0.0.1"
 spec:
   inputs:
