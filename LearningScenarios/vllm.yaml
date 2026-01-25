@@ -1,50 +1,51 @@
+
 apiVersion: ai.sap.com/v1alpha1
 kind: ServingTemplate
 metadata:
-  name: deepseek-r1-7b-stable
+  name: vllm
   annotations:
-    scenarios.ai.sap.com/description: "DeepSeek-R1 7B - V0 engine (stable)"
-    scenarios.ai.sap.com/name: "deepseek-r1-7b-stable"
-    executables.ai.sap.com/description: "7B model with V0 engine"
-    executables.ai.sap.com/name: "deepseek-r1-7b-stable"
+    scenarios.ai.sap.com/description: "Run a vLLM server on SAP AI Core"
+    scenarios.ai.sap.com/name: "vllm"
+    executables.ai.sap.com/description: "Run a LocalAI server on SAP AI Core"
+    executables.ai.sap.com/name: "vllm"
   labels:
-    scenarios.ai.sap.com/id: "deepseek-r1-7b-stable"
-    ai.sap.com/version: "1.0.0"
+    scenarios.ai.sap.com/id: "vllm"
+    ai.sap.com/version: "0.0.1"
 spec:
   inputs:
     parameters:
-      - name: modelName
-        default: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
-        type: string
-      
-      - name: dataType
-        default: "float16"
-        type: string
-      
-      - name: gpuMemoryUtilization
-        default: "0.80"
-        type: string
-      
-      - name: maxModelLen
-        default: "8192"
-        type: string
-      
-      - name: maxNumBatchedTokens
-        default: "8192"
-        type: string
-      
-      - name: maxNumSeqs
-        default: "64"
-        type: string
-      
-      - name: tensorParallelSize
-        default: "1"
-        type: string
-      
+      - name: modelName # placeholder name
+        default: "TheBloke/Mistral-7B-Instruct-v0.2-AWQ" 
+        type: string # required for every parameters
+        description: "--model: Name or path of the huggingface model to use. https://docs.vllm.ai/en/latest/models/supported_models.html/ for supported models. The same model name is used with SAP Generative AI Hub SDK"
+      - name: dataType # Data Type
+        default: "half" 
+        type: string # required for every parameters
+        description: "--dtype: Data type for model weights and activations. https://docs.vllm.ai/en/latest/models/engine_args.html"
+      - name: gpuMemoryUtilization # GPU Memory Utilization
+        default: "0.9" 
+        type: string # required for every parameters
+        description: "The fraction(0~1) of GPU memory to be used for the model executor. https://docs.vllm.ai/en/latest/models/engine_args.html"
+      - name: maxTokenLen # placeholder name
+        default: "2048" 
+        type: string # required for every parameters
+        description: "--max-model-len: Model context length. https://docs.vllm.ai/en/latest/models/engine_args.html"
+      - name: maxNumBatchedTokens # placeholder name
+        default: "2048" 
+        type: string # required for every parameters
+        description: "--max-num-batched-tokens: Maximum number of batched tokens per iteration. https://docs.vllm.ai/en/latest/models/engine_args.html"
+      - name: maxNumSeqs # placeholder name
+        default: "2048" 
+        type: string # required for every parameters
+        description: "--max-num-seqs: Maximum number of sequences per iteration. https://docs.vllm.ai/en/latest/models/engine_args.html"
+      - name: quantization # placeholder name
+        default: "None" 
+        type: string # required for every parameters
+        description: "--quantization: Method used to quantize the weights. https://docs.vllm.ai/en/latest/models/engine_args.html" 
       - name: resourcePlan
-        type: string
-        default: "infer.l"
-        
+        type: "string"
+        default: "train.l"
+        description: "Resource Plan of SAP AI Core. Supported: infer.s, infer.m, infer.l, train.l"
   template:
     apiVersion: "serving.kserve.io/v1beta1"
     metadata:
@@ -69,25 +70,16 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - >
-              set -e && echo "Starting DeepSeek-R1 7B with V0 engine" 
+              set -e && echo "-------------Starting vLLM OpenAI API Server--------------" 
               && python3 -m vllm.entrypoints.openai.api_server 
               --model {{inputs.parameters.modelName}}
               --dtype {{inputs.parameters.dataType}}
               --gpu-memory-utilization {{inputs.parameters.gpuMemoryUtilization}}
-              --max-model-len {{inputs.parameters.maxModelLen}}
+              --enforce-eager
+              --max-model-len {{inputs.parameters.maxTokenLen}}
               --max-num-batched-tokens {{inputs.parameters.maxNumBatchedTokens}}
               --max-num-seqs {{inputs.parameters.maxNumSeqs}}
-              --tensor-parallel-size {{inputs.parameters.tensorParallelSize}}
-              --trust-remote-code
-              --disable-log-requests
-              --host 0.0.0.0
-              --port 8000
+              --quantization {{inputs.parameters.quantization}}
           env:
             - name: MODEL
               value: "{{inputs.parameters.modelName}}"
-            - name: VLLM_USE_V1
-              value: "0"
-            - name: VLLM_WORKER_MULTIPROC_METHOD
-              value: "spawn"
-            - name: HF_HOME
-              value: "/tmp/huggingface"
